@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_service_channel_name">Voice Background Service</string>
+    <string name="voice_service_title">Voice Room</string>
+    <string name="voice_service_text">Streaming microphone audio</string>
+</resources>

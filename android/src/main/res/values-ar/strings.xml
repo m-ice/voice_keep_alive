@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_service_channel_name">خدمة الصوت في الخلفية</string>
+    <string name="voice_service_title">غرفة الصوت</string>
+    <string name="voice_service_text">بث صوت الميكروفون</string>
+</resources>

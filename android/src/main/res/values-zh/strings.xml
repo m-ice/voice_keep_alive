@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_service_channel_name">语音后台服务</string>
+    <string name="voice_service_title">语音房间</string>
+    <string name="voice_service_text">正在传输麦克风音频</string>
+</resources>

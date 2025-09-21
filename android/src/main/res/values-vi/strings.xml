@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_service_channel_name">Dịch vụ nền giọng nói</string>
+    <string name="voice_service_title">Phòng thoại</string>
+    <string name="voice_service_text">Phát âm thanh từ micro</string>
+</resources>

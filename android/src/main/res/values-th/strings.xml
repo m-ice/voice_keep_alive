@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_service_channel_name">บริการเสียงพื้นหลัง</string>
+    <string name="voice_service_title">ห้องเสียง</string>
+    <string name="voice_service_text">กำลังสตรีมเสียงไมโครโฟน</string>
+</resources>
