@@ -3,4 +3,5 @@
     <string name="voice_service_channel_name">Dịch vụ nền giọng nói</string>
     <string name="voice_service_title">Phòng thoại</string>
     <string name="voice_service_text">Phát âm thanh từ micro</string>
+    <string name="voice_service_play_text">Đang phát phòng thoại ở chế độ nền</string>
 </resources>

@@ -12,7 +12,7 @@
 dependencies:
   voice_keep_alive:
     git:
-      url: https://github.com/your-repo/voice_keep_alive.git
+      url: https://github.com/m-ice/voice_keep_alive.git
       ref: main
 ```
 
@@ -78,6 +78,14 @@ await VoiceKeepAlive.stopService();
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE_TYPE_MICROPHONE"/>
 <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Android 13+ -->
+
+
+<service
+android:name="com.mice.voice_keep_alive.services.VoiceKeepService"
+android:enabled="true"
+android:exported="false"
+android:foregroundServiceType="microphone|mediaPlayback" />
+        <!--        mediaPlayback|mediaProjection-->
 ```
 
 2. 插件会自动创建前台服务通知，保持 WakeLock 和 AudioFocus。
@@ -94,6 +102,12 @@ await VoiceKeepAlive.stopService();
 <array>
     <string>audio</string>
 </array>
+
+3️⃣ 可选：蓝牙音频支持
+如果你需要支持蓝牙耳机或外接音频设备：
+<key>NSBluetoothAlwaysUsageDescription</key>
+<string>需要访问蓝牙以连接耳机进行语音房通话</string>
+否则在蓝牙设备上可能无法收音或播放。
 ```
 
 2. 在 Xcode 的 **Signing & Capabilities → Background Modes** 中勾选：

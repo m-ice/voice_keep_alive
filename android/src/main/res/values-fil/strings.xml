@@ -3,4 +3,5 @@
     <string name="voice_service_channel_name">Serbisyo ng Background ng Boses</string>
     <string name="voice_service_title">Voice Room</string>
     <string name="voice_service_text">Streaming ng mikropono</string>
+    <string name="voice_service_play_text">Nagpe-play ng voice room sa background</string>
 </resources>

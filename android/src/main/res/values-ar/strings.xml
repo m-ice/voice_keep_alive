@@ -3,4 +3,5 @@
     <string name="voice_service_channel_name">خدمة الصوت في الخلفية</string>
     <string name="voice_service_title">غرفة الصوت</string>
     <string name="voice_service_text">بث صوت الميكروفون</string>
+    <string name="voice_service_play_text">تشغيل غرفة الصوت في الخلفية</string>
 </resources>

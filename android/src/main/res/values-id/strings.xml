@@ -3,4 +3,5 @@
     <string name="voice_service_channel_name">Layanan Latar Belakang Suara</string>
     <string name="voice_service_title">Ruang Suara</string>
     <string name="voice_service_text">Streaming audio mikrofon</string>
+    <string name="voice_service_play_text">Memutar ruang suara di latar belakang</string>
 </resources>

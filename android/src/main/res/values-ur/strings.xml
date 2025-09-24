@@ -3,4 +3,5 @@
     <string name="voice_service_channel_name">وائس بیک گراؤنڈ سروس</string>
     <string name="voice_service_title">وائس روم</string>
     <string name="voice_service_text">مائیکروفون آڈیو سٹریم کر رہا ہے</string>
+    <string name="voice_service_play_text">پس منظر میں وائس روم چل رہا ہے</string>
 </resources>

@@ -3,4 +3,5 @@
     <string name="voice_service_channel_name">语音后台服务</string>
     <string name="voice_service_title">语音房间</string>
     <string name="voice_service_text">正在传输麦克风音频</string>
+    <string name="voice_service_play_text">正在后台播放语音房</string>
 </resources>

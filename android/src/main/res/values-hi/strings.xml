@@ -3,4 +3,5 @@
     <string name="voice_service_channel_name">वॉइस बैकग्राउंड सेवा</string>
     <string name="voice_service_title">वॉइस रूम</string>
     <string name="voice_service_text">माइक्रोफोन ऑडियो स्ट्रीमिंग</string>
+    <string name="voice_service_play_text">पृष्ठभूमि में वॉइस रूम चला रहा है</string>
 </resources>

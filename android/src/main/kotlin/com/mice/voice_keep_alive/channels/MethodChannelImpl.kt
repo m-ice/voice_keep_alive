@@ -17,19 +17,30 @@ class MethodChannelImpl: MethodChannel.MethodCallHandler {
     ) {
         when (call.method) {
             "startService" -> {
-                println("开启服务")
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-                    ContextCompat.checkSelfPermission(ContextActivityKeeper.activity!!, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                val mode = call.argument<Int>("mode") ?: VoiceKeepService.MODE_AUDIENCE  // 从 Flutter 传过来的参数
+
+                // 如果是主播模式，需要检查麦克风权限
+                if (mode == VoiceKeepService.MODE_ANCHOR &&
+                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                    ContextCompat.checkSelfPermission(
+                        ContextActivityKeeper.activity!!,
+                        Manifest.permission.RECORD_AUDIO
+                    ) != PackageManager.PERMISSION_GRANTED
+                ) {
                     result.error("PERMISSION_DENIED", "麦克风权限未授予", null)
                     return
                 }
                 try {
-                    val intent = Intent(ContextActivityKeeper.activity, VoiceKeepService::class.java)
+                    val intent = Intent(ContextActivityKeeper.activity, VoiceKeepService::class.java).apply {
+                        putExtra("mode", mode)  // ✅ 把 mode 传给 Service
+                    }
+
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         ContextActivityKeeper.activity?.startForegroundService(intent)
                     } else {
                         ContextActivityKeeper.activity?.startService(intent)
                     }
+                    println("开启服务$mode")
                     result.success(null)
                 } catch (e: Exception) {
                     e.printStackTrace()

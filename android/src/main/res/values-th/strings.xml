@@ -3,4 +3,5 @@
     <string name="voice_service_channel_name">บริการเสียงพื้นหลัง</string>
     <string name="voice_service_title">ห้องเสียง</string>
     <string name="voice_service_text">กำลังสตรีมเสียงไมโครโฟน</string>
+    <string name="voice_service_play_text">กำลังเล่นห้องเสียงในพื้นหลัง</string>
 </resources>

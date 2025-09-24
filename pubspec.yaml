@@ -1,6 +1,6 @@
 name: voice_keep_alive
 description: "A Flutter plugin to keep microphone alive in background."
-version: 1.0.0
+version: 1.0.3
 homepage: https://github.com/m-ice/voice_keep_alive
 
 environment:
@@ -36,6 +36,8 @@ flutter:
     platforms:
       android:
         package: com.mice.voice_keep_alive
+        pluginClass: VoiceKeepAlivePlugin
+      ios:
         pluginClass: VoiceKeepAlivePlugin
 
   # To add assets to your plugin package, add an assets section, like this:

@@ -3,4 +3,5 @@
     <string name="voice_service_channel_name">Arka Plan Ses Servisi</string>
     <string name="voice_service_title">Ses Odası</string>
     <string name="voice_service_text">Mikrofon sesini yayınlıyor</string>
+    <string name="voice_service_play_text">Arka planda ses odası oynatılıyor</string>
 </resources>
