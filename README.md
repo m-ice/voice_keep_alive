@@ -71,12 +71,13 @@ await VoiceKeepAlive.stopService();
 1. 在 `AndroidManifest.xml` 中声明权限：
 
 ```xml
-<uses-permission android:name="android.permission.RECORD_AUDIO" />
-<uses-permission android:name="android.permission.WAKE_LOCK" />
-<uses-permission android:name="oppo.permission.FOREGROUND_SERVICE_MICROPHONE" />
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_TYPE_MICROPHONE"/>
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="oppo.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_TYPE_MICROPHONE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- Android 13+ -->
 
 
