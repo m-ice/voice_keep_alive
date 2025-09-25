@@ -1,6 +1,6 @@
 name: voice_keep_alive
 description: "A Flutter plugin to keep microphone alive in background."
-version: 1.0.4
+version: 1.0.5-dev.1
 homepage: https://github.com/m-ice/voice_keep_alive
 
 environment:
