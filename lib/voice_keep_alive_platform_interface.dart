@@ -24,7 +24,7 @@ abstract class VoiceKeepAlivePlatform extends PlatformInterface {
   }
 
 
-  Future<void> startService({bool isAnchor=true}) {
+  Future<void> startService({bool isAnchor=true,String title='',String content=''}) {
     throw UnimplementedError('startService() has not been implemented.');
   }
 

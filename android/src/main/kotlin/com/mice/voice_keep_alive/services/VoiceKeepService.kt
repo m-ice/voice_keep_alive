@@ -28,7 +28,8 @@ class VoiceKeepService : Service() {
     private var audioManager: AudioManager? = null
     private var focusRequest: AudioFocusRequest? = null
     private var currentMode: Int = MODE_AUDIENCE
-
+    private var title: String = ""
+    private var content: String = ""
     // --- 麦克风采集 (保活用) ---
     private var audioRecord: AudioRecord? = null
     private var recordThread: Thread? = null
@@ -44,7 +45,8 @@ class VoiceKeepService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // 获取模式（默认观众）
         currentMode = intent?.getIntExtra("mode", MODE_AUDIENCE) ?: MODE_AUDIENCE
-
+        title = intent?.getStringExtra("title") ?: ""
+        content = intent?.getStringExtra("content") ?: ""
         // Android 13+ 麦克风权限检查（只有主播模式才需要）
         if (currentMode == MODE_ANCHOR &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
@@ -69,9 +71,12 @@ class VoiceKeepService : Service() {
 
         // 构建通知
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.voice_service_title))
+            .setContentTitle(
+                title.ifEmpty { getString(R.string.voice_service_title) })
             .setContentText(
-                if (currentMode == MODE_ANCHOR)
+                if(content.isNotEmpty())
+                    content
+                else if (currentMode == MODE_ANCHOR)
                     getString(R.string.voice_service_text)
                 else
                     getString(R.string.voice_service_play_text)

@@ -17,8 +17,10 @@ class MethodChannelImpl: MethodChannel.MethodCallHandler {
     ) {
         when (call.method) {
             "startService" -> {
-                val mode = call.argument<Int>("mode") ?: VoiceKeepService.MODE_AUDIENCE  // 从 Flutter 传过来的参数
-
+                // 从 Flutter 传过来的参数
+                val mode = call.argument<Int>("mode") ?: VoiceKeepService.MODE_AUDIENCE
+                val title = call.argument<String>("title") ?:  ""
+                val content = call.argument<String>("content") ?:  ""
                 // 如果是主播模式，需要检查麦克风权限
                 if (mode == VoiceKeepService.MODE_ANCHOR &&
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
@@ -32,15 +34,16 @@ class MethodChannelImpl: MethodChannel.MethodCallHandler {
                 }
                 try {
                     val intent = Intent(ContextActivityKeeper.activity, VoiceKeepService::class.java).apply {
-                        putExtra("mode", mode)  // ✅ 把 mode 传给 Service
+                        putExtra("mode", mode)
+                        putExtra("title", title)
+                        putExtra("content", content)
                     }
-
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         ContextActivityKeeper.activity?.startForegroundService(intent)
                     } else {
                         ContextActivityKeeper.activity?.startService(intent)
                     }
-                    println("开启服务$mode")
+                    println("开启服务$mode-$title-$content")
                     result.success(null)
                 } catch (e: Exception) {
                     e.printStackTrace()
