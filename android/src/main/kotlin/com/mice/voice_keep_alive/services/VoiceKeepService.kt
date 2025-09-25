@@ -76,7 +76,11 @@ class VoiceKeepService : Service() {
                 else
                     "正在后台播放语音房"
             )
-            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+            .setSmallIcon(  if (currentMode == MODE_ANCHOR)
+                android.R.drawable.ic_btn_speak_now
+            else
+                android.R.drawable.ic_lock_silent_mode_off
+            )
             .setOngoing(true)
             .setContentIntent(pendingIntent)
             .build()
