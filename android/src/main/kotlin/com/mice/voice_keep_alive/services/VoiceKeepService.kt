@@ -39,7 +39,6 @@ class VoiceKeepService : Service() {
         super.onCreate()
         createNotificationChannel()
         acquireWakeLock()
-        requestAudioFocus()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -47,6 +46,10 @@ class VoiceKeepService : Service() {
         currentMode = intent?.getIntExtra("mode", MODE_AUDIENCE) ?: MODE_AUDIENCE
         title = intent?.getStringExtra("title") ?: ""
         content = intent?.getStringExtra("content") ?: ""
+
+        if(currentMode==MODE_ANCHOR){
+            requestAudioFocus()
+        }
         // Android 13+ 麦克风权限检查（只有主播模式才需要）
         if (currentMode == MODE_ANCHOR &&
             ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
