@@ -4,39 +4,33 @@ import android.app.Activity
 import android.content.Context
 import java.lang.ref.WeakReference
 
-
+/**
+ * 安全的 Context 与 Activity 保存工具
+ * 任何地方访问都不会抛异常
+ */
 object ContextActivityKeeper {
     private var contextWeakReference: WeakReference<Context>? = null
     private var activityWeakReference: WeakReference<Activity>? = null
+
     var context: Context?
-        get() {
-            if (contextWeakReference == null) {
-                throw NullPointerException("contextWeakReference is null")
-            }
-            val context: Context = contextWeakReference!!.get()!!
-            return context
-        }
-        set(context) {
-            contextWeakReference = if (context == null) {
-                null
-            } else {
-                WeakReference<Context>(context)
-            }
+        get() = contextWeakReference?.get()
+        set(value) {
+            contextWeakReference = value?.let { WeakReference(it) }
         }
 
     var activity: Activity?
-        get() {
-            if (activityWeakReference == null) {
-                throw NullPointerException("contextWeakReference is null")
-            }
-            val activity: Activity = activityWeakReference!!.get()!!
-            return activity
+        get() = activityWeakReference?.get()
+        set(value) {
+            activityWeakReference = value?.let { WeakReference(it) }
         }
-        set(activity) {
-            activityWeakReference = if (activity == null) {
-                null
-            } else {
-                WeakReference<Activity>(activity)
-            }
-        }
+
+    /**
+     * 清理引用，建议在插件 onDetachedFromEngine 时调用
+     */
+    fun clear() {
+        contextWeakReference?.clear()
+        activityWeakReference?.clear()
+        contextWeakReference = null
+        activityWeakReference = null
+    }
 }

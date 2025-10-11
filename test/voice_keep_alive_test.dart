@@ -10,7 +10,7 @@ class MockVoiceKeepAlivePlatform
 
 
   @override
-  Future<void> startService({bool isAnchor = true}) {
+  Future<void> startService({bool isAnchor = true, String title = '', String content = ''}) {
     // TODO: implement startService
     throw UnimplementedError();
   }
