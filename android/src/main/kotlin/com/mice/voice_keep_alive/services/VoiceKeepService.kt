@@ -15,7 +15,7 @@ import androidx.core.content.ContextCompat
 import com.mice.voice_keep_alive.R
 import com.mice.voice_keep_alive.utils.ContextActivityKeeper
 
-class VoiceKeepService : Service() {
+public class VoiceKeepService : Service() {
 
     companion object {
         const val CHANNEL_ID = "voice_service_channel"

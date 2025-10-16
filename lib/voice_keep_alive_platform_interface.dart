@@ -31,4 +31,8 @@ abstract class VoiceKeepAlivePlatform extends PlatformInterface {
   Future<void> stopService() {
     throw UnimplementedError('stopService() has not been implemented.');
   }
+
+  Future<bool> moveAppToBackground() {
+    throw UnimplementedError('moveAppToBackground() has not been implemented.');
+  }
 }

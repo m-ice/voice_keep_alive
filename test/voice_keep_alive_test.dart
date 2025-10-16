@@ -21,6 +21,12 @@ class MockVoiceKeepAlivePlatform
     throw UnimplementedError();
   }
 
+  @override
+  Future<bool> moveAppToBackground() {
+    // TODO: implement moveAppToBackground
+    throw UnimplementedError();
+  }
+
 
 }
 

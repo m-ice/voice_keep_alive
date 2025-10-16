@@ -8,7 +8,7 @@ import java.lang.ref.WeakReference
  * 安全的 Context 与 Activity 保存工具
  * 任何地方访问都不会抛异常
  */
-object ContextActivityKeeper {
+public object ContextActivityKeeper {
     private var contextWeakReference: WeakReference<Context>? = null
     private var activityWeakReference: WeakReference<Activity>? = null
 

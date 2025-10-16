@@ -25,4 +25,9 @@ class MethodChannelVoiceKeepAlive extends VoiceKeepAlivePlatform {
   Future<void> stopService() async {
     return await methodChannel.invokeMethod<dynamic>('stopService');
   }
+
+  @override
+  Future<bool> moveAppToBackground() async {
+    return await methodChannel.invokeMethod<bool>('moveAppToBackground')??false;
+  }
 }

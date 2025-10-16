@@ -45,6 +45,14 @@ await VoiceKeepAlive.stopService();
 
 停止服务会释放相关资源。
 
+### 4. 最小化返回到桌面 only supports Android
+
+```dart
+await VoiceKeepAlive.moveAppToBackground();
+```
+
+最小化返回到桌面app正常运行。
+
 ---
 
 ## 📘 API 说明
