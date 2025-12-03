@@ -10,7 +10,7 @@ class MockVoiceKeepAlivePlatform
 
 
   @override
-  Future<void> startService({bool isAnchor = true, String title = '', String content = ''}) {
+  Future<void> startService({bool isAnchor = true, String title = '', String content = '',String roomParams=''}) {
     // TODO: implement startService
     throw UnimplementedError();
   }
@@ -24,6 +24,12 @@ class MockVoiceKeepAlivePlatform
   @override
   Future<bool> moveAppToBackground() {
     // TODO: implement moveAppToBackground
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> initKeepAliveHandler(Function(String roomParams)? callBack) {
+    // TODO: implement initKeepAliveHandler
     throw UnimplementedError();
   }
 

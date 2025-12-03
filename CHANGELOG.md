@@ -19,3 +19,5 @@ Improve functionality and reduce power consumption.
 fix(crash):
 ANR com.mice.voice_keep_alive.services.VoiceKeepService.startSilentPlayback (SourceFile)
 Crash Context.startForegroundService() did not then call Service.startForeground() ServiceRecord{e335bac u0 com.levende.rinacom.mice.voice_keep_alive.services.VoiceKeepService}
+- ## [1.0.7] - 2025-12-03
+Click on the service to open a room.

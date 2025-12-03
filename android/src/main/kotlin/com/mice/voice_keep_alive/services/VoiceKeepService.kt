@@ -11,6 +11,7 @@ import android.os.PowerManager
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import com.mice.voice_keep_alive.R
+import com.mice.voice_keep_alive.VoiceKeepAlivePlugin
 import com.mice.voice_keep_alive.utils.ContextActivityKeeper
 
 public class VoiceKeepService : Service() {
@@ -89,13 +90,30 @@ public class VoiceKeepService : Service() {
             }
         }
 
+//        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+//        val pendingIntent = PendingIntent.getActivity(
+//            this,
+//            0,
+//            launchIntent,
+//            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+//        )
+
         val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+            ?.apply {
+                putExtra("roomParams", intent?.getStringExtra("roomParams")?:"") ///
+                action = "OPEN_ROOM_FROM_SERVICE"
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+
         val pendingIntent = PendingIntent.getActivity(
             this,
             0,
             launchIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(title)
@@ -110,6 +128,11 @@ public class VoiceKeepService : Service() {
             .setOngoing(true)
             .build()
     }
+
+//    private fun handleNotificationClick(roomParams: String) {
+//        // Flutter 端会收到 openRoom 回调
+//        VoiceKeepAlivePlugin.channel?.invokeMethod("openRoom", roomParams)
+//    }
 
     /** 异步处理逻辑 */
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)

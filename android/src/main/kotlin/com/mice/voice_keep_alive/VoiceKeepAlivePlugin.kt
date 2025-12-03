@@ -16,21 +16,44 @@ import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodChannel
 
 class VoiceKeepAlivePlugin : FlutterPlugin, ActivityAware {
+    companion object {
+        // 提供静态引用，Service 可以直接调用
+        var channel: MethodChannel? = null
+        var cachedIntent: Intent? = null
 
-  private lateinit var channel: MethodChannel
-  private var context: Context? = null
+        fun handleIntent(intent: Intent?) {
+            val roomParams = intent?.getStringExtra("roomParams") ?: return
+            if (channel != null) {
+                channel?.invokeMethod("openRoom", roomParams)
+            } else {
+                cachedIntent = intent
+            }
+        }
+
+        fun handleCachedIntent() {
+            cachedIntent?.let {
+                handleIntent(it)
+                cachedIntent = null
+            }
+        }
+    }
+
+    private var context: Context? = null
+
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-    context = flutterPluginBinding.applicationContext
-    ContextActivityKeeper.context = context
-    channel = MethodChannel(flutterPluginBinding.binaryMessenger, "voice_keep_alive")
-    channel.setMethodCallHandler(MethodChannelImpl())
-    AppUtil.appHandler = Handler(Looper.getMainLooper())
+      context = flutterPluginBinding.applicationContext
+      ContextActivityKeeper.context = context
+      channel = MethodChannel(flutterPluginBinding.binaryMessenger, "voice_keep_alive")
+      channel?.setMethodCallHandler(MethodChannelImpl())
+      AppUtil.appHandler = Handler(Looper.getMainLooper())
   }
 
   override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-    channel.setMethodCallHandler(null)
-    context = null
+      channel?.setMethodCallHandler(null)
+      channel = null
+      context = null
+      cachedIntent = null
     // 安全清理 ContextActivityKeeper 中的引用
     ContextActivityKeeper.clear()
   }
@@ -54,4 +77,6 @@ class VoiceKeepAlivePlugin : FlutterPlugin, ActivityAware {
   override fun onDetachedFromActivity() {
     ContextActivityKeeper.activity = null
   }
+
+
 }

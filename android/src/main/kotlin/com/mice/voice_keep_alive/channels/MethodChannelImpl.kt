@@ -22,6 +22,7 @@ public class MethodChannelImpl: MethodChannel.MethodCallHandler {
                 val mode = call.argument<Int>("mode") ?: VoiceKeepService.MODE_AUDIENCE
                 val title = call.argument<String>("title") ?: ""
                 val content = call.argument<String>("content") ?: ""
+                val roomParams = call.argument<String>("roomParams") ?: ""
                 // 如果是主播模式，需要检查麦克风权限
                 if (mode == VoiceKeepService.MODE_ANCHOR &&
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
@@ -39,6 +40,7 @@ public class MethodChannelImpl: MethodChannel.MethodCallHandler {
                             putExtra("mode", mode)
                             putExtra("title", title)
                             putExtra("content", content)
+                            putExtra("roomParams", roomParams)
                         }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         ContextActivityKeeper.activity?.startForegroundService(intent)

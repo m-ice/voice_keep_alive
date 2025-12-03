@@ -24,7 +24,7 @@ abstract class VoiceKeepAlivePlatform extends PlatformInterface {
   }
 
 
-  Future<void> startService({bool isAnchor=true,String title='',String content=''}) {
+  Future<void> startService({bool isAnchor=true,String title='',String content='',String roomParams=''}) {
     throw UnimplementedError('startService() has not been implemented.');
   }
 
@@ -34,5 +34,9 @@ abstract class VoiceKeepAlivePlatform extends PlatformInterface {
 
   Future<bool> moveAppToBackground() {
     throw UnimplementedError('moveAppToBackground() has not been implemented.');
+  }
+
+  Future<void> initKeepAliveHandler(Function(String roomParams)? callBack) {
+    throw UnimplementedError('initKeepAliveHandler() has not been implemented.');
   }
 }

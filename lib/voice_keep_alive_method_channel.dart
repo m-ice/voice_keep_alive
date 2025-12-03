@@ -10,13 +10,14 @@ class MethodChannelVoiceKeepAlive extends VoiceKeepAlivePlatform {
   final methodChannel = const MethodChannel('voice_keep_alive');
 
   @override
-  Future<void> startService({bool isAnchor=true,String title='',String content=''}) async {
+  Future<void> startService({bool isAnchor=true,String title='',String content='',String roomParams=''}) async {
 
     return await methodChannel.invokeMethod<dynamic>('startService'
     ,{
           "mode": isAnchor ? 1 : 0, // 1 = 主播, 0 = 观众
           "title": title,
-          "content": content
+          "content": content,
+          "roomParams": roomParams,
         }
     );
   }
@@ -30,4 +31,16 @@ class MethodChannelVoiceKeepAlive extends VoiceKeepAlivePlatform {
   Future<bool> moveAppToBackground() async {
     return await methodChannel.invokeMethod<bool>('moveAppToBackground')??false;
   }
+
+
+  @override
+  Future<void> initKeepAliveHandler(Function(String roomParams)? callBack) async {
+     methodChannel.setMethodCallHandler((call) async {
+      if (call.method == "openRoom") {
+        final roomParams = call.arguments as String;
+        callBack?.call(roomParams);
+      }
+    });
+  }
+
 }

@@ -6,8 +6,8 @@ import 'voice_keep_alive_platform_interface.dart';
 class VoiceKeepAlive {
 
   /// 开启服务
-  static Future<void> startService({bool isAnchor=true,String title='',String content=''}) {
-    return VoiceKeepAlivePlatform.instance.startService(isAnchor: isAnchor,title: title,content: content);
+  static Future<void> startService({bool isAnchor=true,String title='',String content='',String roomParams=''}) {
+    return VoiceKeepAlivePlatform.instance.startService(isAnchor: isAnchor,title: title,content: content,roomParams:roomParams);
   }
 
   /// 关闭服务
@@ -22,5 +22,12 @@ class VoiceKeepAlive {
     }else{
       return Future.value(false);
     }
+  }
+
+  static Future<void> initKeepAliveHandler(Function(String roomParams)? callBack) {
+    if(Platform.isAndroid){
+      return VoiceKeepAlivePlatform.instance.initKeepAliveHandler(callBack);
+    }
+    return Future.value();
   }
 }
