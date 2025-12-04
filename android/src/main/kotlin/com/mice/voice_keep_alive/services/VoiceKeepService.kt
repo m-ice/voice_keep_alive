@@ -3,13 +3,16 @@ package com.mice.voice_keep_alive.services
 import android.Manifest
 import android.app.*
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.media.*
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.mice.voice_keep_alive.R
 import com.mice.voice_keep_alive.VoiceKeepAlivePlugin
 import com.mice.voice_keep_alive.utils.ContextActivityKeeper
@@ -40,36 +43,108 @@ public class VoiceKeepService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // Step 1: 立即创建并显示通知（尽早调用）
+
+        // ❗必须最早读取 mode，不能丢在子线程
+        currentMode = intent?.getIntExtra("mode", MODE_AUDIENCE) ?: MODE_AUDIENCE
+
+        // Step 1: 创建通知
         val notification = buildForegroundNotification(intent)
+
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(
-                    NOTIFICATION_ID,
-                    notification,
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
-                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-                )
+
+                val hasRecordAudio = ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.RECORD_AUDIO
+                ) == PackageManager.PERMISSION_GRANTED
+
+                val hasFgsMic = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    ContextCompat.checkSelfPermission(
+                        this,
+                        Manifest.permission.FOREGROUND_SERVICE_MICROPHONE
+                    ) == PackageManager.PERMISSION_GRANTED
+                } else {
+                    true // Android 13 以下不需要此权限
+                }
+
+                Log.w("Start service","Start service currentMode=$currentMode, hasRecordAudio=$hasRecordAudio, hasFgsMic=$hasFgsMic")
+
+                val canUseMic = hasRecordAudio && hasFgsMic
+
+                if (currentMode == MODE_ANCHOR && canUseMic) {
+                    // 主播模式 + 权限齐全 → 启动 MIC 类型 FGS
+                    startForeground(
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
+                                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                    )
+                } else {
+                    // 观众模式 or 权限不足 → 只能 MEDIA_PLAYBACK
+                    startForeground(
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                    )
+                }
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
+
         } catch (e: Exception) {
             e.printStackTrace()
             stopSelf()
             return START_NOT_STICKY
         }
 
-        // Step 2: 异步执行其余逻辑（防止阻塞）
+        // Step 2: 剩余逻辑放到后台执行
         Thread {
             try {
                 handleIntentWork(intent)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (_: Exception) {}
         }.start()
 
         return START_STICKY
     }
+//    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+//        // Step 1: 立即创建并显示通知（尽早调用）
+//        val notification = buildForegroundNotification(intent)
+//        try {
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//                if(currentMode==MODE_ANCHOR){
+//                    startForeground(
+//                        NOTIFICATION_ID,
+//                        notification,
+//                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+//                            or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+//                    )
+//                }else{
+//                    startForeground(
+//                        NOTIFICATION_ID,
+//                        notification,
+//                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+//                    )
+//                }
+//            } else {
+//                startForeground(NOTIFICATION_ID, notification)
+//            }
+//        } catch (e: Exception) {
+//            e.printStackTrace()
+//            stopSelf()
+//            return START_NOT_STICKY
+//        }
+//
+//        // Step 2: 异步执行其余逻辑（防止阻塞）
+//        Thread {
+//            try {
+//                handleIntentWork(intent)
+//            } catch (e: Exception) {
+//                e.printStackTrace()
+//            }
+//        }.start()
+//
+//        return START_STICKY
+//    }
 
     /** 构建通知 */
     private fun buildForegroundNotification(intent: Intent?): Notification {
@@ -111,7 +186,7 @@ public class VoiceKeepService : Service() {
             this,
             0,
             launchIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
 
