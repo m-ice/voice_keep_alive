@@ -11,7 +11,7 @@ import com.mice.voice_keep_alive.utils.ContextActivityKeeper
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 
-public class MethodChannelImpl: MethodChannel.MethodCallHandler {
+class MethodChannelImpl: MethodChannel.MethodCallHandler {
     override fun onMethodCall(
         call: MethodCall,
         result: MethodChannel.Result
@@ -66,7 +66,17 @@ public class MethodChannelImpl: MethodChannel.MethodCallHandler {
                     result.error("SERVICE_ERROR", e.message, null)
                 }
             }
-
+            "setAudioActive" -> {
+                val active = call.argument<Boolean>("active") ?: false
+                if (active != ContextActivityKeeper.lastActive) {
+                    ContextActivityKeeper.lastActive = active
+                    VoiceKeepService.instance?.onAudioStateChanged(active)
+                        ?: run {
+                            println("VoiceKeepService 实例为 null")
+                        }
+                }
+                result.success(null)
+            }
             "moveAppToBackground" -> {
                 try {
                     val activity = ContextActivityKeeper.activity

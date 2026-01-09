@@ -21,3 +21,11 @@ ANR com.mice.voice_keep_alive.services.VoiceKeepService.startSilentPlayback (Sou
 Crash Context.startForegroundService() did not then call Service.startForeground() ServiceRecord{e335bac u0 com.levende.rinacom.mice.voice_keep_alive.services.VoiceKeepService}
 - ## [1.0.7] - 2025-12-03
 Click on the service to open a room.
+- ## [1.0.8] - 2025-01-09
+fix(service): add FOREGROUND_SERVICE_MICROPHONE permission and safe AudioTrack handling
+
+- Add manifest permission for Android 12+ FGS microphone
+- Check both RECORD_AUDIO and FGS_MIC before starting foreground service
+- Wrap SilentAudioPlayer initialization and write thread with try/catch
+- Ensure service starts safely on Android 4.4–16
+- Compatible with Flutter 3.x + ZEGO audio keep-alive

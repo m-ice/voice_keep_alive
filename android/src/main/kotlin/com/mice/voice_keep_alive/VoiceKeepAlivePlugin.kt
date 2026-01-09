@@ -15,7 +15,7 @@ import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodChannel
 
-class VoiceKeepAlivePlugin : FlutterPlugin, ActivityAware {
+public class VoiceKeepAlivePlugin : FlutterPlugin, ActivityAware {
     companion object {
         // 提供静态引用，Service 可以直接调用
         var channel: MethodChannel? = null

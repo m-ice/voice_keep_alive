@@ -24,6 +24,7 @@ public object ContextActivityKeeper {
             activityWeakReference = value?.let { WeakReference(it) }
         }
 
+    var lastActive: Boolean = false
     /**
      * 清理引用，建议在插件 onDetachedFromEngine 时调用
      */

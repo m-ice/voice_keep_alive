@@ -33,6 +33,12 @@ class MockVoiceKeepAlivePlatform
     throw UnimplementedError();
   }
 
+  @override
+  Future<void> setAudioActive(bool active) {
+    // TODO: implement setAudioActive
+    throw UnimplementedError();
+  }
+
 
 }
 

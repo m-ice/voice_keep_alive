@@ -28,6 +28,15 @@ class MethodChannelVoiceKeepAlive extends VoiceKeepAlivePlatform {
   }
 
   @override
+  Future<void> setAudioActive(bool active) async {
+    try {
+      await methodChannel.invokeMethod('setAudioActive', {"active": active});
+    } catch (e) {
+      debugPrint("Failed to call native audio state: $e");
+    }
+  }
+
+  @override
   Future<bool> moveAppToBackground() async {
     return await methodChannel.invokeMethod<bool>('moveAppToBackground')??false;
   }

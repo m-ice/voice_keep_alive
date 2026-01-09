@@ -5,252 +5,138 @@ import android.app.*
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
-import android.media.*
-import android.os.Build
-import android.os.IBinder
-import android.os.PowerManager
-import android.util.Log
-import androidx.annotation.RequiresPermission
+import android.os.*
+import androidx.annotation.RequiresApi
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import com.mice.voice_keep_alive.R
-import com.mice.voice_keep_alive.VoiceKeepAlivePlugin
-import com.mice.voice_keep_alive.utils.ContextActivityKeeper
+import com.mice.voice_keep_alive.audio.SilentAudioPlayer
 
-public class VoiceKeepService : Service() {
+class VoiceKeepService : Service() {
 
     companion object {
         const val CHANNEL_ID = "voice_service_channel"
         const val NOTIFICATION_ID = 1001
+
         const val MODE_AUDIENCE = 0
         const val MODE_ANCHOR = 1
+
+        @Volatile
+        var instance: VoiceKeepService? = null
     }
 
+    private var currentMode = MODE_AUDIENCE
     private var wakeLock: PowerManager.WakeLock? = null
-    private var audioManager: AudioManager? = null
-    private var currentMode: Int = MODE_AUDIENCE
-    private var title: String = ""
-    private var content: String = ""
-    private var mediaPlayer: MediaPlayer? = null
-    private var audioRecord: AudioRecord? = null
-    private var recordThread: Thread? = null
-    private var isRecording = false
+    private val silentPlayer = SilentAudioPlayer()
 
+    private var title = ""
+    private var content = ""
+    private var roomParams = ""
+
+    // ---------------- lifecycle ----------------
     override fun onCreate() {
         super.onCreate()
+        instance = this
         createNotificationChannel()
-        acquireWakeLock()
+        releaseWakeLock()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-
-        // ❗必须最早读取 mode，不能丢在子线程
         currentMode = intent?.getIntExtra("mode", MODE_AUDIENCE) ?: MODE_AUDIENCE
-
-        // Step 1: 创建通知
-        val notification = buildForegroundNotification(intent)
-
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-
-                val hasRecordAudio = ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.RECORD_AUDIO
-                ) == PackageManager.PERMISSION_GRANTED
-
-                val hasFgsMic = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    ContextCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.FOREGROUND_SERVICE_MICROPHONE
-                    ) == PackageManager.PERMISSION_GRANTED
-                } else {
-                    true // Android 13 以下不需要此权限
-                }
-
-                Log.w("Start service","Start service currentMode=$currentMode, hasRecordAudio=$hasRecordAudio, hasFgsMic=$hasFgsMic")
-
-                val canUseMic = hasRecordAudio && hasFgsMic
-
-                if (currentMode == MODE_ANCHOR && canUseMic) {
-                    // 主播模式 + 权限齐全 → 启动 MIC 类型 FGS
-                    startForeground(
-                        NOTIFICATION_ID,
-                        notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
-                                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-                    )
-                } else {
-                    // 观众模式 or 权限不足 → 只能 MEDIA_PLAYBACK
-                    startForeground(
-                        NOTIFICATION_ID,
-                        notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-                    )
-                }
-            } else {
-                startForeground(NOTIFICATION_ID, notification)
-            }
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-            stopSelf()
-            return START_NOT_STICKY
-        }
-
-        // Step 2: 剩余逻辑放到后台执行
-        Thread {
-            try {
-                handleIntentWork(intent)
-            } catch (_: Exception) {}
-        }.start()
-
+        title = intent?.getStringExtra("title") ?: getString(R.string.voice_service_title)
+        content = intent?.getStringExtra("content") ?: getString(R.string.voice_service_text)
+        roomParams = intent?.getStringExtra("roomParams") ?: ""
+        startForegroundSafely()
         return START_STICKY
-    }
-//    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-//        // Step 1: 立即创建并显示通知（尽早调用）
-//        val notification = buildForegroundNotification(intent)
-//        try {
-//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-//                if(currentMode==MODE_ANCHOR){
-//                    startForeground(
-//                        NOTIFICATION_ID,
-//                        notification,
-//                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-//                            or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-//                    )
-//                }else{
-//                    startForeground(
-//                        NOTIFICATION_ID,
-//                        notification,
-//                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-//                    )
-//                }
-//            } else {
-//                startForeground(NOTIFICATION_ID, notification)
-//            }
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//            stopSelf()
-//            return START_NOT_STICKY
-//        }
-//
-//        // Step 2: 异步执行其余逻辑（防止阻塞）
-//        Thread {
-//            try {
-//                handleIntentWork(intent)
-//            } catch (e: Exception) {
-//                e.printStackTrace()
-//            }
-//        }.start()
-//
-//        return START_STICKY
-//    }
-
-    /** 构建通知 */
-    private fun buildForegroundNotification(intent: Intent?): Notification {
-        val mode = intent?.getIntExtra("mode", MODE_AUDIENCE) ?: MODE_AUDIENCE
-        val title = intent?.getStringExtra("title") ?: getString(R.string.voice_service_title)
-        val content = intent?.getStringExtra("content") ?: getString(R.string.voice_service_text)
-
-        // 确保通知通道存在
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val manager = getSystemService(NotificationManager::class.java)
-            if (manager?.getNotificationChannel(CHANNEL_ID) == null) {
-                val channel = NotificationChannel(
-                    CHANNEL_ID,
-                    getString(R.string.voice_service_channel_name),
-                    NotificationManager.IMPORTANCE_LOW
-                )
-                manager?.createNotificationChannel(channel)
-            }
-        }
-
-//        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
-//        val pendingIntent = PendingIntent.getActivity(
-//            this,
-//            0,
-//            launchIntent,
-//            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-//        )
-
-        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
-            ?.apply {
-                putExtra("roomParams", intent?.getStringExtra("roomParams")?:"") ///
-                action = "OPEN_ROOM_FROM_SERVICE"
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP
-            }
-
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            launchIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-        )
-
-
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(title)
-            .setContentText(content)
-            .setSmallIcon(
-                if (mode == MODE_ANCHOR)
-                    android.R.drawable.ic_btn_speak_now
-                else
-                    android.R.drawable.ic_lock_silent_mode_off
-            )
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .build()
-    }
-
-//    private fun handleNotificationClick(roomParams: String) {
-//        // Flutter 端会收到 openRoom 回调
-//        VoiceKeepAlivePlugin.channel?.invokeMethod("openRoom", roomParams)
-//    }
-
-    /** 异步处理逻辑 */
-    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
-    private fun handleIntentWork(intent: Intent?) {
-        currentMode = intent?.getIntExtra("mode", MODE_AUDIENCE) ?: MODE_AUDIENCE
-        acquireWakeLock()
-
-        if (currentMode == MODE_ANCHOR) {
-            startSilentPlayback()
-            // or startFakeRecording()
-        } else {
-            stopSilentPlayback()
-            stopFakeRecording()
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        stopSilentPlayback()
-        stopFakeRecording()
-        releaseWakeLock()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    /** ---------- 唤醒锁 ---------- */
-    private fun acquireWakeLock() {
+    // ================= 音频状态回调 =================
+    fun onAudioStateChanged(active: Boolean) {
+        if (!active ||
+            currentMode != MODE_ANCHOR ||
+            !isAppInBackground() ||
+            !hasMicPermission()
+        ) {
+            silentPlayer.stop()
+            releaseWakeLock()
+            return
+        }
+
+        // 🎯 抖音核心：后台持续音频链路
+        silentPlayer.start()
+
+        // ⚠️ WakeLock 兜底
+        acquireWakeLock(30_000L)
+    }
+
+    // ================= WakeLock =================
+    private fun acquireWakeLock(timeoutMs: Long) {
         if (wakeLock == null) {
             val pm = getSystemService(POWER_SERVICE) as PowerManager
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "VoiceKeepService::WakeLock")
+            wakeLock = pm.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "VoiceKeepService::WakeLock"
+            )
         }
-        if (wakeLock?.isHeld == false){
-            try {
-                wakeLock?.acquire()
-            } catch (_: Exception) {}
+
+        if (wakeLock?.isHeld != true) {
+            try { wakeLock?.acquire(timeoutMs) } catch (_: Exception) {}
         }
     }
 
     private fun releaseWakeLock() {
-        if (wakeLock?.isHeld == true) wakeLock?.release()
+        try {
+            if (wakeLock?.isHeld == true) wakeLock?.release()
+        } catch (_: Exception) {}
     }
 
-    /** ---------- 通知通道 ---------- */
+    // ================= 前台服务 =================
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun startForegroundSafely() {
+        val notification = buildNotification()
+
+        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // 仅在有权限且主播模式时传 MIC 类型
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
+                    if (currentMode == MODE_ANCHOR && hasMicPermission())
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                    else 0
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+        } else 0
+
+        startForeground(NOTIFICATION_ID, notification, type)
+    }
+
+    private fun buildNotification(): Notification {
+        val intent = packageManager.getLaunchIntentForPackage(packageName)
+            ?: Intent(this, Class.forName("$packageName.MainActivity"))
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_CLEAR_TOP
+        intent.putExtra("roomParams", roomParams)
+
+        val pi = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(
+                if (currentMode == MODE_ANCHOR)
+                    android.R.drawable.ic_btn_speak_now
+                else
+                    android.R.drawable.ic_lock_silent_mode_off
+            )
+            .setContentTitle(title)
+            .setContentText(content)
+            .setOngoing(true)
+            .setContentIntent(pi)
+            .build()
+    }
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
@@ -258,132 +144,212 @@ public class VoiceKeepService : Service() {
                 getString(R.string.voice_service_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
+            getSystemService(NotificationManager::class.java)?.createNotificationChannel(channel)
         }
     }
 
-    /** ---------- 静音播放防休眠 ---------- */
-    private fun startSilentPlayback() {
-        if (mediaPlayer != null) return
-        try {
-            audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-            audioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
+    // ================= 权限检查 =================
+    private fun hasMicPermission(): Boolean {
+        val recordAudio = ActivityCompat.checkSelfPermission(
+            this, Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
 
-            val attr = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                .build()
+        val fgsMic = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+            ActivityCompat.checkSelfPermission(
+                this, Manifest.permission.FOREGROUND_SERVICE_MICROPHONE
+            ) == PackageManager.PERMISSION_GRANTED
+        else true
 
-            val player = MediaPlayer()
-            player.setAudioAttributes(attr)
-            player.isLooping = true
-            player.setVolume(0f, 0f)
-
-            // 加载资源
-            val afd = resources.openRawResourceFd(R.raw.silence)
-            player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-            afd.close()
-
-            // 异步准备，防止卡死 native
-            player.setOnPreparedListener { mp ->
-                try {
-                    mp.start()
-                    mediaPlayer = mp
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    stopSilentPlayback()
-                }
-            }
-
-            player.setOnErrorListener { mp, what, extra ->
-                android.util.Log.e("VoiceKeepService", "MediaPlayer error: $what / $extra")
-                stopSilentPlayback()
-                true
-            }
-
-            player.prepareAsync()
-
-            // 启动 10 秒超时保护
-            android.os.Handler(mainLooper).postDelayed({
-                if (mediaPlayer == null || mediaPlayer?.isPlaying == false) {
-                    android.util.Log.w("VoiceKeepService", "MediaPlayer prepare timeout, restarting")
-                    stopSilentPlayback()
-                    startSilentPlayback()
-                }
-            }, 10000)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            stopSilentPlayback()
-        }
+        return recordAudio && fgsMic
     }
 
-    private fun stopSilentPlayback() {
-        try {
-            mediaPlayer?.let {
-                if (it.isPlaying) it.stop()
-                it.release()
-            }
-        } catch (_: Exception) { }
-        mediaPlayer = null
+    private fun isAppInBackground(): Boolean {
+        return !VoiceKeepApp.isForeground
     }
 
-    /** ---------- 虚拟录音保活 ---------- */
-    @RequiresPermission(Manifest.permission.RECORD_AUDIO)
-    private fun startFakeRecording() {
-        if (isRecording) return
-        try {
-            val sampleRate = 16000
-            val bufferSize = AudioRecord.getMinBufferSize(
-                sampleRate,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT
-            )
-
-            audioRecord = AudioRecord(
-                MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-                sampleRate,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT,
-                bufferSize
-            )
-
-            audioRecord?.startRecording()
-            isRecording = true
-
-            recordThread = Thread {
-                val buffer = ByteArray(bufferSize)
-                while (isRecording && audioRecord?.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
-                    audioRecord?.read(buffer, 0, buffer.size)
-                }
-            }
-            recordThread?.start()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            stopFakeRecording()
-        }
-    }
-
-    private fun stopFakeRecording() {
-        try {
-            isRecording = false
-            recordThread?.interrupt()
-            recordThread = null
-            audioRecord?.let {
-                try {
-                    if (it.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
-                        it.stop()
-                    }
-                } catch (_: Exception) {}
-                try { it.release() } catch (_: Exception) {}
-            }
-            audioRecord = null
-        } catch (_: Exception) {}
-    }
-
-    /** ---------- 机型识别 ---------- */
-    private fun isMiuiManufacturer(): Boolean {
-        val manufacturer = Build.MANUFACTURER.lowercase()
-        return manufacturer.contains("xiaomi") || manufacturer.contains("redmi")
+    // ================= 生命周期 =================
+    override fun onDestroy() {
+        silentPlayer.stop()
+        releaseWakeLock()
+        instance = null
+        stopForeground(true)
+        super.onDestroy()
     }
 }
+
+
+//package com.mice.voice_keep_alive.services
+//
+//import android.Manifest
+//import android.app.*
+//import android.content.Intent
+//import android.content.pm.PackageManager
+//import android.content.pm.ServiceInfo
+//import android.os.*
+//import androidx.core.app.ActivityCompat
+//import androidx.core.app.NotificationCompat
+//import com.mice.voice_keep_alive.R
+//import com.mice.voice_keep_alive.audio.SilentAudioPlayer
+//
+//class VoiceKeepService : Service() {
+//
+//    companion object {
+//        const val CHANNEL_ID = "voice_service_channel"
+//        const val NOTIFICATION_ID = 1001
+//
+//        const val MODE_AUDIENCE = 0
+//        const val MODE_ANCHOR = 1
+//
+//        @Volatile
+//        var instance: VoiceKeepService? = null
+//    }
+//
+//    private var currentMode = MODE_AUDIENCE
+//    private var wakeLock: PowerManager.WakeLock? = null
+//    private val silentPlayer = SilentAudioPlayer()
+//    private var title = ""
+//    private var content = ""
+//    private var roomParams = ""
+//
+//    override fun onCreate() {
+//        super.onCreate()
+//        instance = this
+//        createNotificationChannel()
+//    }
+//
+//    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+//        currentMode = intent?.getIntExtra("mode", MODE_AUDIENCE) ?: MODE_AUDIENCE
+//        title = intent?.getStringExtra("title") ?: getString(R.string.voice_service_title)
+//        content = intent?.getStringExtra("content") ?: getString(R.string.voice_service_text)
+//        roomParams = intent?.getStringExtra("roomParams") ?: ""
+//
+//        startForegroundSafely()
+//        return START_STICKY
+//    }
+//
+//    override fun onBind(intent: Intent?): IBinder? = null
+//
+//    // ================= 音频状态回调 =================
+//
+//    fun onAudioStateChanged(active: Boolean) {
+//        if (!active ||
+//            currentMode != MODE_ANCHOR ||
+//            !isAppInBackground() ||
+//            !hasMicPermission()
+//        ) {
+////            silentPlayer.stop()
+//            releaseWakeLock()
+//            return
+//        }
+//
+//        // 🎯 抖音核心：后台持续音频链路
+////        silentPlayer.start()
+//
+//        // ⚠️ WakeLock 只是兜底
+//        acquireWakeLock(30_000L)
+//    }
+//
+//    // ================= WakeLock =================
+//
+//    private fun acquireWakeLock(timeoutMs: Long) {
+//        if (wakeLock == null) {
+//            val pm = getSystemService(POWER_SERVICE) as PowerManager
+//            wakeLock = pm.newWakeLock(
+//                PowerManager.PARTIAL_WAKE_LOCK,
+//                "VoiceKeepService::WakeLock"
+//            )
+//        }
+//
+//        if (wakeLock?.isHeld != true) {
+//            try {
+//                wakeLock?.acquire(timeoutMs)
+//            } catch (_: Exception) {}
+//        }
+//    }
+//
+//    private fun releaseWakeLock() {
+//        try {
+//            if (wakeLock?.isHeld == true) {
+//                wakeLock?.release()
+//            }
+//        } catch (_: Exception) {}
+//    }
+//
+//    // ================= 前台服务 =================
+//
+//    private fun startForegroundSafely() {
+//        val notification = buildNotification()
+//
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//            startForeground(
+//                NOTIFICATION_ID,
+//                notification,
+//                ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+//            )
+//        } else {
+//            startForeground(NOTIFICATION_ID, notification)
+//        }
+//    }
+//
+//    private fun buildNotification(): Notification {
+//        val intent = packageManager.getLaunchIntentForPackage(packageName)
+//            ?: Intent(this, Class.forName("$packageName.MainActivity"))
+//        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+//                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+//                Intent.FLAG_ACTIVITY_CLEAR_TOP
+//        intent.putExtra("roomParams", roomParams)
+//
+//        val pi = PendingIntent.getActivity(
+//            this,
+//            0,
+//            intent,
+//            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+//        )
+//
+//        return NotificationCompat.Builder(this, CHANNEL_ID)
+//            .setSmallIcon(
+//                if (currentMode == MODE_ANCHOR)
+//                    android.R.drawable.ic_btn_speak_now
+//                else
+//                    android.R.drawable.ic_lock_silent_mode_off
+//            )
+//            .setContentTitle(title)
+//            .setContentText(content)
+//            .setOngoing(true)
+//            .setContentIntent(pi)
+//            .build()
+//    }
+//
+//    private fun createNotificationChannel() {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            val channel = NotificationChannel(
+//                CHANNEL_ID,
+//                getString(R.string.voice_service_channel_name),
+//                NotificationManager.IMPORTANCE_LOW
+//            )
+//            getSystemService(NotificationManager::class.java)
+//                ?.createNotificationChannel(channel)
+//        }
+//    }
+//
+//    // ================= 工具 =================
+//
+//    private fun hasMicPermission(): Boolean {
+//        return ActivityCompat.checkSelfPermission(
+//            this,
+//            Manifest.permission.RECORD_AUDIO
+//        ) == PackageManager.PERMISSION_GRANTED
+//    }
+//
+//    private fun isAppInBackground(): Boolean {
+//        return !VoiceKeepApp.isForeground
+//    }
+//
+//    override fun onDestroy() {
+//        silentPlayer.stop()
+//        releaseWakeLock()
+//        instance = null
+//        stopForeground(true)
+//        super.onDestroy()
+//    }
+//}
