@@ -17,7 +17,10 @@ class VoiceKeepAlive {
 
   /// 告诉原生音频是否活跃
   static Future<void> setAudioActive(bool active) {
-    return VoiceKeepAlivePlatform.instance.setAudioActive(active);
+    if(Platform.isAndroid){
+      return VoiceKeepAlivePlatform.instance.setAudioActive(active);
+    }
+    return Future.value();
   }
 
   /// 最小化返回到桌面 only supports Android
