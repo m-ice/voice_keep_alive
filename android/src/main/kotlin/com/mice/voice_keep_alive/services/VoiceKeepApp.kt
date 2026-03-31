@@ -17,7 +17,6 @@ class VoiceKeepApp : Application() {
         super.onCreate()
 
         registerActivityLifecycleCallbacks(object : ActivityLifecycleCallbacks {
-
             override fun onActivityResumed(activity: Activity) {
                 resumedCount++
                 isForeground = true
@@ -26,11 +25,12 @@ class VoiceKeepApp : Application() {
             override fun onActivityPaused(activity: Activity) {
                 resumedCount--
                 if (resumedCount <= 0) {
+                    resumedCount = 0
                     isForeground = false
                 }
             }
 
-            override fun onActivityCreated(a: Activity, b: Bundle?) {}
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
             override fun onActivityStarted(activity: Activity) {}
             override fun onActivityStopped(activity: Activity) {}
             override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
