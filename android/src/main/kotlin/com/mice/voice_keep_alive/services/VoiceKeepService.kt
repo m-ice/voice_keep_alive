@@ -146,9 +146,9 @@ class VoiceKeepService : Service() {
 
         val finalContent = if (content.isBlank()) {
             if (currentMode == MODE_ANCHOR) {
-                "语音房通话中（可发言）"
+                getString(R.string.voice_service_text)
             } else {
-                "语音房收听中"
+                getString(R.string.voice_service_play_text)
             }
         } else {
             content
