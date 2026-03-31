@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:voice_keep_alive/voice_keep_alive.dart';
+// import 'package:voice_keep_alive/voice_keep_alive.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +17,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   String _platformVersion = 'Unknown';
-  final _voiceKeepAlivePlugin = VoiceKeepAlive();
+  // final _voiceKeepAlivePlugin = VoiceKeepAlive();
 
   @override
   void initState() {

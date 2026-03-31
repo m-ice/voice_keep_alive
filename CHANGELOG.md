@@ -21,7 +21,7 @@ ANR com.mice.voice_keep_alive.services.VoiceKeepService.startSilentPlayback (Sou
 Crash Context.startForegroundService() did not then call Service.startForeground() ServiceRecord{e335bac u0 com.levende.rinacom.mice.voice_keep_alive.services.VoiceKeepService}
 - ## [1.0.7] - 2025-12-03
 Click on the service to open a room.
-- ## [1.0.8] - 2025-01-09
+- ## [1.0.8] - 2026-01-09
 fix(service): add FOREGROUND_SERVICE_MICROPHONE permission and safe AudioTrack handling
 
 - Add manifest permission for Android 12+ FGS microphone
@@ -29,3 +29,17 @@ fix(service): add FOREGROUND_SERVICE_MICROPHONE permission and safe AudioTrack h
 - Wrap SilentAudioPlayer initialization and write thread with try/catch
 - Ensure service starts safely on Android 4.4–16
 - Compatible with Flutter 3.x + ZEGO audio keep-alive
+
+- ## [1.0.9 or 1.0.10] - 2026-02-01
+refactor(android): remove silent-audio/wakelock keepalive and switch to FGS-based voice room service
+
+* remove `SilentAudioPlayer` based keepalive logic
+* remove `PARTIAL_WAKE_LOCK` fallback from `VoiceKeepService`
+* refactor keepalive flow to rely on foreground service instead of silent audio playback
+* add explicit room state driven service update (`startService` / `updateServiceState` / `stopService`)
+* separate audience and anchor modes through foreground service types
+* keep audience mode on `mediaPlayback`, enable `microphone` only for anchor mode
+* simplify service lifecycle and stop service when user leaves room
+* avoid using app background state as the trigger for fake audio keepalive
+* improve plugin context handling by avoiding unsafe `activity!!` access
+* prepare implementation for lower power usage during screen-off/background voice room sessions
