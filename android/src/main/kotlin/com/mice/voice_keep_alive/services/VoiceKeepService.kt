@@ -95,20 +95,29 @@ class VoiceKeepService : Service() {
     // ================= 前台服务 =================
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun startForegroundSafely() {
-        val notification = buildNotification()
+    val notification = buildNotification()
 
-        val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // 仅在有权限且主播模式时传 MIC 类型
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
-                    if (currentMode == MODE_ANCHOR && hasMicPermission())
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
-                    else 0
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-        } else 0
+    when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+            val type =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
+                        if (currentMode == MODE_ANCHOR && hasMicPermission())
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+                        else 0
+                } else {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                }
 
-        startForeground(NOTIFICATION_ID, notification, type)
+            startForeground(NOTIFICATION_ID, notification, type)
+        }
+
+        else -> {
+            startForeground(NOTIFICATION_ID, notification)
+        }
     }
+}
+
 
     private fun buildNotification(): Notification {
         val intent = packageManager.getLaunchIntentForPackage(packageName)
